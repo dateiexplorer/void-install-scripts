@@ -1,14 +1,15 @@
 #!/bin/bash
 
-################################################################################
-# CONFIGURATION                                                                #
-################################################################################
+###############################################################################
+# CONFIGURATION
+###############################################################################
 # Change the Variable below to configure your installation.
 
 # Change the hostname of your computer.
 # This will also change the name under which the computer is reachable in your
 # local network.
-: "${HOSTNAME:=void}"
+# Use HOST variable instead of HOSTNAME which is reserved by the system.
+: "${HOST:=void}"
 
 # Change the root password.
 : "${ROOTPASSWD:=root}"
@@ -38,9 +39,18 @@ xbuilder,lpadmin}"
 : "${BOOTPARTITIONSIZE:=+500M}"
 : "${SWAPPARTITIONSIZE:=+512M}"
 
-################################################################################
-# PARTITIONING                                                                 #
-################################################################################
+
+###############################################################################
+# Check if running script with root permissions.
+
+if [[ $EUID -ne 0 ]]; then
+    echo "You need root permissions to run this script. Try using sudo."
+    exit 2
+fi
+
+###############################################################################
+# PARTITIONING
+###############################################################################
 # Partioning filesystem
 # /dev/sda1 500M EFI-System
 # /dev/sda2 ..   Linux-Swap
@@ -75,9 +85,9 @@ mkfs.btrfs -L "ROOT" "${HOMEPARTITION}"
 mkswap -L "SWAP" "${SWAPPARTITION}"
 swapon "${SWAPPARTITION}"
 
-################################################################################
-# INSTALL BASESYSTEM                                                           #
-################################################################################
+###############################################################################
+# INSTALL BASESYSTEM
+###############################################################################
 # Create a New Root
 mount "${HOMEPARTITION}" /mnt
 mkdir -p /mnt/boot/efi
@@ -99,14 +109,15 @@ mount --rbind /proc /mnt/proc && mount --make-rslave /mnt/proc
 cp /etc/resolv.conf /mnt/etc/
 
 # Chroot into new installation
-cat <<SETUP_EOF | PS1='(chroot) # ' chroot /mnt /bin/bash
+cat <<SETUP_EOF | chroot /mnt /bin/bash
 
-################################################################################
-# DO CONFIGURATION                                                             #
-################################################################################
+###############################################################################
+# DO CONFIGURATION
+###############################################################################
 
 # Hostname
-echo "${HOSTNAME}" > /etc/hostname
+hostname "${HOST}"
+echo "${HOST}" > /etc/hostname
 
 # Timezone
 ln -sf /usr/share/zoneinfo/"${TIMEZONE}" /etc/localtime
@@ -140,9 +151,9 @@ echo "tmpfs /tmp tmpfs defaults,nosuid,nodev 0 0" >> /etc/fstab
 echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
 chmod 440 /etc/sudoers.d/wheel
 
-################################################################################
-# GRUB BOOTLOADER                                                              #
-################################################################################
+###############################################################################
+# GRUB BOOTLOADER
+###############################################################################
 # Install grub bootloader
 xbps-install -Sy grub-${ARCH}-efi
 
@@ -152,9 +163,9 @@ grub-install --no-nvram --target=${ARCH}-efi --efi-directory=/boot/efi
 # Finalization
 xbps-reconfigure -fa
 
-################################################################################
-# INSTALL KDE5                                                                 #
-################################################################################
+###############################################################################
+# INSTALL KDE5
+###############################################################################
 # Configure services
 xbps-install -Sy elogind NetworkManager tlp bluez alsa-utils \
     alsa-plugins-pulseaudio pulseaudio sndio cups cups-filters lm_sensors
@@ -181,13 +192,13 @@ useradd -m -G "${USERGROUPS}" "${USERNAME}"
 echo "${USERNAME}:${USERPASSWD}" | chpasswd -c SHA512
 
 # Install other apps
-xbps-install -Sy xorg kde5 kde5-baseapps sddm mugshot spectacle kwalletmanager \
-    libappindicator vim
+xbps-install -Sy xorg kde5 kde5-baseapps sddm mugshot spectacle \
+    kwalletmanager libappindicator vim
 
 # Configure SDDM service
 ln -s /etc/sv/sddm /etc/runit/runsvdir/default/
 
-################################################################################
+###############################################################################
 # Add some programs
 # xbps-install -Sy firefox firefox-18n-de keepassxc krdc krita libreoffice \
 #     libreoffice-i18n-de musescore nextcloud-client nextcloud-client-dolphin \
@@ -198,6 +209,10 @@ ln -s /etc/sv/sddm /etc/runit/runsvdir/default/
 exit
 SETUP_EOF
 
+# Change into installation to do further configuration.
+PS1='(chroot) # ' chroot /mnt /bin/bash
+
+# If exit from the chroot environment restart the system.
 shutdown -r now
 
 
