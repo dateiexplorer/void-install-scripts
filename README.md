@@ -16,7 +16,7 @@ Make sure that you have root permissions to do that.
 xbps-install -S wget
 
 # Download file from this Repository
-wget https://github.com/dateiexplorer/void-install-scripts/void-install-kde.sh
+wget https://raw.githubusercontent.com/dateiexplorer/void-install-scripts/main/void-install-kde.sh
 
 # Make script executable
 chmod 744 void-install-kde.sh
