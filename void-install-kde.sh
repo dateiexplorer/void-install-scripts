@@ -46,7 +46,7 @@
 : "${USERNAME:=Void User}"
 : "${USERLOGIN:=user}"
 : "${USERPASSWD:=user}"
-: "${USERGROUPS:=wheel,floppy,lp,audio,video,cdrom,optical,storage,network,\
+: "${USERGROUPS:=wheel,floppy,lp,audio,video,cdrom,optical,storage,network,
 xbuilder,lpadmin}"
 
 # Setup repository and architecture.
@@ -138,7 +138,7 @@ get_uuid() {
 # Check if running script with root permissions.
 
 if [ "$(id -u)" -ne 0 ]; then
-    die "Must be run with root permissions. Exiting..."
+    fatal "Must be run with root permissions. Exiting..."
 fi
 
 # Check if network is reachable.
