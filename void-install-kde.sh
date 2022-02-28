@@ -46,8 +46,7 @@
 : "${USERNAME:=Void User}"
 : "${USERLOGIN:=user}"
 : "${USERPASSWD:=user}"
-: "${USERGROUPS:=wheel,floppy,lp,audio,video,cdrom,optical,storage,network,
-xbuilder,lpadmin}"
+: "${USERGROUPS:=wheel,floppy,lp,audio,video,cdrom,optical,storage,network,xbuilder,lpadmin}"
 
 # Setup repository and architecture.
 : "${REPO:=https://alpha.de.repo.voidlinux.org/current}"
@@ -325,9 +324,11 @@ echo "${USERLOGIN}:${USERPASSWD}" | chpasswd -R $TARGETDIR -c SHA512
 info "Install GRUB bootloader..."
 chroot $TARGETDIR xbps-install -Sy grub-${ARCH}-efi >$LOG 2>&1
 
-# Add --no-nvram because of error "EFI variables are not available"
-chroot $TARGETDIR grub-install --no-nvram --target=${ARCH}-efi \
-    --efi-directory=/boot/efi >$LOG 2>&1
+# Maybe add --no-nvram because of error "EFI variables are not available"
+grub_args="--target=${ARCH}-efi --efi-directory=/boot/efi --bootloader-id=void_grub --recheck"
+
+chroot $TARGETDIR grub-install $grub_args $DISK >$LOG 2>&1
+chroot $TARGETDIR grub-mkconfig -o /boot/grub/grub.cfg >$LOG 2>&1
 
 # Finilazation
 chroot $TARGETDIR xbps-reconfigure -fa >$LOG 2>&1
