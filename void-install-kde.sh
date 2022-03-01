@@ -40,12 +40,12 @@
 : "${HOST:=void}"
 
 # Change the root password.
-: "${ROOTPASSWD:=root}"
+: "${ROOTPASSWD:=voidlinux}"
 
 # Add a new user with the information below.
 : "${USERNAME:=Void User}"
-: "${USERLOGIN:=user}"
-: "${USERPASSWD:=user}"
+: "${USERLOGIN:=anon}"
+: "${USERPASSWD:=voidlinux}"
 : "${USERGROUPS:=wheel,floppy,lp,audio,video,cdrom,optical,storage,network,xbuilder,lpadmin}"
 
 # Setup repository and architecture.
@@ -219,8 +219,9 @@ PARTITIONING_EOF
 # FILESYSTEM
 ###############################################################################
 info "Configure filesystem..."
-mkfs.vfat -F 32 -n "BOOT" "${BOOTPARTITION}"; modprobe vfat >$LOG 2>&1
-mke2fs -F -t ext4 -L "ROOT" "${ROOTPARTITION}"; modprobe ext4 >$LOG 2>&1
+mkfs.vfat -F 32 -n "BOOT" "${BOOTPARTITION}" >$LOG 2>&1
+#mke2fs -F -t ext4 -L "ROOT" "${ROOTPARTITION}" >$LOG 2>&1
+mkfs.btrfs -L "ROOT" "${ROOTPARTITION}" >$LOG 2>&1
 
 mkswap -L "SWAP" "${SWAPPARTITION}" >$LOG 2>&1
 swapon "${SWAPPARTITION}" >$LOG 2>&1
@@ -273,7 +274,8 @@ chroot $TARGETDIR xbps-reconfigure -f glibc-locales >$LOG 2>&1
 # Generate fstab
 info "Generate fstab..."
 echo "UUID=$(get_uuid ${SWAPPARTITION}) none swap sw 0 0" >>$TARGET_FSTAB
-echo "UUID=$(get_uuid ${ROOTPARTITION}) / ext4 defaults 0 1" >>$TARGET_FSTAB
+# Make sure to edit this line if using ext4 instead of btrfs 
+echo "UUID=$(get_uuid ${ROOTPARTITION}) / btrfs defaults 0 1" >>$TARGET_FSTAB
 echo "UUID=$(get_uuid ${BOOTPARTITION}) /boot/efi vfat defaults 0 2" \
     >>$TARGET_FSTAB
 
@@ -331,6 +333,7 @@ chroot $TARGETDIR grub-install $grub_args $DISK >$LOG 2>&1
 chroot $TARGETDIR grub-mkconfig -o /boot/grub/grub.cfg >$LOG 2>&1
 
 # Finilazation
+info "Finalization..."
 chroot $TARGETDIR xbps-reconfigure -fa >$LOG 2>&1
 
 ###############################################################################
